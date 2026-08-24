@@ -1,1 +1,1 @@
-a tiny macOS player for `~/Music` that pauses when audio output changes and keeps Apple Music closed.
+a tiny apple-silicon macOS menu-bar player for `~/Music` that pauses when audio output changes and keeps Apple Music closed — install: `git clone --depth 1 https://github.com/zxrl/audio.git && ./audio/install.sh`
