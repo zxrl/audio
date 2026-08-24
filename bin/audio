@@ -1,0 +1,70 @@
+#!/bin/zsh
+set -euo pipefail
+
+MUSIC_DIR="$HOME/Music"
+
+usage() {
+  print -- 'usage: audio play|pause|toggle|next|previous|shuffle|repeat|quit|<track>'
+}
+
+command_player() {
+  /usr/bin/open -g "zxrl-audio://$1"
+}
+
+play_file() {
+  local file="$1"
+  [[ -f "$file" ]] || {
+    print -u2 -- "audio: not a file: $file"
+    exit 1
+  }
+  /usr/bin/open -g -b com.zaksorel.audio "$file"
+}
+
+find_track() {
+  /usr/bin/find "$MUSIC_DIR" -maxdepth 1 -type f \
+    \( -iname '*.mp3' -o -iname '*.m4a' -o -iname '*.aac' -o -iname '*.flac' -o -iname '*.wav' -o -iname '*.aiff' -o -iname '*.aif' \) \
+    -iname "*$1*" -print | /usr/bin/sort | /usr/bin/head -n 1
+}
+
+[[ $# -gt 0 ]] || {
+  usage
+  exit 0
+}
+
+case "$1" in
+  play)
+    command_player play
+    ;;
+  pause)
+    command_player pause
+    ;;
+  toggle)
+    command_player toggle
+    ;;
+  next)
+    command_player next
+    ;;
+  previous)
+    command_player previous
+    ;;
+  shuffle|repeat|quit)
+    command_player "$1"
+    ;;
+  -h|--help)
+    usage
+    ;;
+  *)
+    query="$*"
+    if [[ -f "$query" ]]; then
+      play_file "$query"
+      exit 0
+    fi
+
+    match=$(find_track "$query")
+    [[ -n "$match" ]] || {
+      print -u2 -- "audio: no match in $MUSIC_DIR: $query"
+      exit 1
+    }
+    play_file "$match"
+    ;;
+esac
