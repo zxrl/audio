@@ -560,7 +560,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
-        configureLaunchAtLoginIfNeeded()
+        synchronizeLaunchAtLogin()
         musicLaunchBlocker.start()
 
         player.onTrackEnded = { [weak self] in
@@ -669,22 +669,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
     }
 
-    private func configureLaunchAtLoginIfNeeded() {
+    private func synchronizeLaunchAtLogin() {
         let defaults = UserDefaults.standard
         if defaults.object(forKey: launchAtLoginEnabledKey) == nil {
             defaults.set(true, forKey: launchAtLoginEnabledKey)
         }
 
-        guard defaults.bool(forKey: launchAtLoginEnabledKey) else {
-            updateLaunchAtLoginMenuItem()
-            return
-        }
-
         do {
-            if SMAppService.mainApp.status == .notRegistered
-                || SMAppService.mainApp.status == .notFound
+            if defaults.bool(forKey: launchAtLoginEnabledKey) {
+                if SMAppService.mainApp.status == .notRegistered
+                    || SMAppService.mainApp.status == .notFound
+                {
+                    try SMAppService.mainApp.register()
+                }
+            } else if SMAppService.mainApp.status == .enabled
+                || SMAppService.mainApp.status == .requiresApproval
             {
-                try SMAppService.mainApp.register()
+                try SMAppService.mainApp.unregister()
             }
         } catch {
             lifecycleLogger.error(
