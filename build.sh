@@ -37,6 +37,7 @@ lipo -create \
   -output "$APP/Contents/MacOS/audio"
 install -m 644 "$SOURCE_DIR/Info.plist" "$APP/Contents/Info.plist"
 install -m 755 "$SOURCE_DIR/bin/audio" "$APP/Contents/Resources/bin/audio"
+xattr -cr "$APP"
 
 identity="${CODE_SIGN_IDENTITY:--}"
 if [[ "${DISTRIBUTION:-0}" == "1" ]]; then
