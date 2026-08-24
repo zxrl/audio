@@ -21,20 +21,13 @@ sources=(
   "$SOURCE_DIR/audio.swift"
 )
 
-for architecture in arm64 x86_64; do
-  xcrun swiftc \
-    -target "$architecture-apple-macosx$MACOS_VERSION" \
-    -warnings-as-errors \
-    -O \
-    "${frameworks[@]}" \
-    -o "$BUILD_DIR/audio-$architecture" \
-    "${sources[@]}"
-done
-
-lipo -create \
-  "$BUILD_DIR/audio-arm64" \
-  "$BUILD_DIR/audio-x86_64" \
-  -output "$APP/Contents/MacOS/audio"
+xcrun swiftc \
+  -target "arm64-apple-macosx$MACOS_VERSION" \
+  -warnings-as-errors \
+  -O \
+  "${frameworks[@]}" \
+  -o "$APP/Contents/MacOS/audio" \
+  "${sources[@]}"
 install -m 644 "$SOURCE_DIR/Info.plist" "$APP/Contents/Info.plist"
 install -m 755 "$SOURCE_DIR/bin/audio" "$APP/Contents/Resources/bin/audio"
 xattr -cr "$APP"
