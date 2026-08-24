@@ -1,1 +1,1 @@
-a tiny apple-silicon macOS menu-bar player for `~/Music` that pauses when audio output changes and keeps Apple Music closed — install: `git clone --depth 1 https://github.com/zxrl/audio.git && ./audio/install.sh`
+because Apple Music is trash and i need something lightweight for my music folder: press play to shuffle through `~/Music`, use media keys or the `audio` cli, and control it from a tiny menu-bar app that replaces Apple Music for local playback and keeps it closed — install: `git clone --depth 1 https://github.com/zxrl/audio.git && ./audio/install.sh`
