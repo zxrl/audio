@@ -9,8 +9,10 @@ import ServiceManagement
 private let playbackLogger = Logger(subsystem: "com.zaksorel.audio", category: "playback")
 private let lifecycleLogger = Logger(subsystem: "com.zaksorel.audio", category: "lifecycle")
 
-private let musicDirectoryURL = URL(fileURLWithPath: NSHomeDirectory())
-    .appendingPathComponent("Music", isDirectory: true)
+private let musicDirectoryURL = FileManager.default.urls(
+    for: .musicDirectory,
+    in: .userDomainMask
+).first!
 private let playableAudioExtensions: Set<String> = [
     "aac", "aif", "aiff", "flac", "m4a", "mp3", "wav",
 ]
@@ -26,17 +28,21 @@ private func isPlayableAudioFile(_ url: URL) -> Bool {
 }
 
 private func musicTracks() -> [URL] {
-    guard
-        let urls = try? FileManager.default.contentsOfDirectory(
+    let urls: [URL]
+    do {
+        urls = try FileManager.default.contentsOfDirectory(
             at: musicDirectoryURL,
             includingPropertiesForKeys: [.isRegularFileKey],
             options: [.skipsHiddenFiles]
         )
-    else {
+    } catch {
+        playbackLogger.error(
+            "unable to read \(musicDirectoryURL.path, privacy: .public): \(error.localizedDescription, privacy: .public)"
+        )
         return []
     }
 
-    return urls.filter { url in
+    let tracks = urls.filter { url in
         guard
             let values = try? url.resourceValues(forKeys: [.isRegularFileKey])
         else {
@@ -47,6 +53,13 @@ private func musicTracks() -> [URL] {
     }.sorted { left, right in
         left.path.localizedStandardCompare(right.path) == .orderedAscending
     }
+
+    if tracks.isEmpty {
+        playbackLogger.error(
+            "no playable tracks found in \(musicDirectoryURL.path, privacy: .public)"
+        )
+    }
+    return tracks
 }
 
 final class DefaultOutputDeviceMonitor {
@@ -570,19 +583,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = self?.player.pauseForOutputDeviceChange()
         }
         guard outputDeviceMonitor.start() else {
-            quit()
+            terminate()
             return
         }
         prepareRandomTrackIfOpenedDirectly()
     }
 
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+        playbackLogger.notice("received file open request")
         receivedOpenRequest = true
         return player.play(file: URL(fileURLWithPath: filename))
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let url = urls.first else { return }
+        playbackLogger.notice("received URL open request")
         receivedOpenRequest = true
 
         guard url.isFileURL else {
@@ -658,9 +673,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         menu.addItem(launchAtLoginMenuItem!)
 
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: ""))
-
         for item in menu.items {
             item.target = self
         }
@@ -719,8 +731,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func prepareRandomTrackIfOpenedDirectly() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            guard !self.receivedOpenRequest, !self.player.hasTrack else { return }
-            _ = self.player.prepareRandomMusicTrack()
+            guard !self.receivedOpenRequest else {
+                playbackLogger.notice("skipped startup track after an open request")
+                return
+            }
+            guard !self.player.hasTrack else {
+                playbackLogger.notice("skipped startup track because one is already loaded")
+                return
+            }
+
+            if self.player.prepareRandomMusicTrack() {
+                playbackLogger.notice("prepared startup track")
+            } else {
+                playbackLogger.error("unable to prepare startup track")
+            }
         }
     }
 
@@ -753,8 +777,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             shuffleMenuItem?.state = player.toggleShuffle() ? .on : .off
         case "repeat":
             repeatMenuItem?.state = player.toggleRepeat() ? .on : .off
-        case "quit":
-            quit()
         default:
             break
         }
@@ -800,7 +822,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateLaunchAtLoginMenuItem()
     }
 
-    @objc private func quit() {
+    private func terminate() {
         NSApp.terminate(nil)
     }
 }

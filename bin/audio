@@ -4,7 +4,7 @@ set -euo pipefail
 MUSIC_DIR="$HOME/Music"
 
 usage() {
-  print -- 'usage: audio play|pause|toggle|next|previous|shuffle|repeat|quit|<track>'
+  print -- 'usage: audio play|pause|toggle|next|previous|shuffle|repeat|<track>'
 }
 
 command_player() {
@@ -47,7 +47,7 @@ case "$1" in
   previous)
     command_player previous
     ;;
-  shuffle|repeat|quit)
+  shuffle|repeat)
     command_player "$1"
     ;;
   -h|--help)
